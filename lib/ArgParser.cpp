@@ -227,7 +227,7 @@ bool ArgParser::Parse(const std::vector<std::string_view>& args) {
                 }
             }
         } else if (token->starts_with("-") && token->size() != 1) {
-            if(!ParseShort(token, args.end())) {
+            if (!ParseShort(token, args.end())) {
                 return false;
             }
         } else {
