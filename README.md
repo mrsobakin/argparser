@@ -1,60 +1,74 @@
-[![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-718a45dd9cf7e7f842a935f5ebbe5719a5e09af4491e668f4dbf3b35d5cca122.svg)](https://classroom.github.com/online_ide?assignment_repo_id=12795278&assignment_repo_type=AssignmentRepo)
-# Лабораторная работа 4
+# ♾ ArgParser
 
-## Задача
+Type-safe\* & exception-free CLI argument parser written in C++, powered by the template metaprogramming magic 🪄.
 
-Спроектировать и реализовать класс для парсинга аргументов командной строки.
+## 🧐 Overview
 
-## Требования
+This library was written as a lab work in my university. Hence, it contains some dirty hacks (like the function alias macro) and unsafe functions (like the `ArgParser::GetValueDangerous<T>`), that exist for the sole purpose of complying with the original task. However, even with that said, this library is completely downcast free, does not throw exceptions and runtime errors, and is type-safe. Also, it is easuly extensible (you can see the examples below), and it does not require niether modifying the source code, niether writing boilerplate code and using a ten-layer inheritance.
 
-В качестве требований Вам дается файл с [тестами](tests/argparser_test.cpp). Исходя из тестов, Вы должны понять, какой публичный интерфейс предоставляет парсер. Ваша задача добиться, чтобы все тесты "проходили".
+## ✨ Features
 
-Изначально парсер умеет обрабатывать только строки, целочисленные и булевые аргументы. Вам не запрещается добавить произвольные типы и расширить функционал.
+- **Completely Type-Safe (if you want it to be)**: You can either choose the methods that unsafely cast the underlying objects and unwrap the `std::optional`s or not. Aside from these functions, the `ArgParser` library is completely type-safe and runtime-error free.
+- **Easily Extensible**: `ArgParser` supports adding custom arguments with minimal effort.
+- **Default Values**: Define default values for arguments to handle cases where arguments are not provided.
+- **Flag Arguments**: Define flags that can be toggled on or off.
+- **Multi-Value Arguments**: Support for parsing multiple values for an argument.
+- **Positional Arguments**: Parse arguments based on their position in the command line.
+- **Help Command**: Automatic generation of the help page.
 
-### Тесты
-
-Как и в предыдущих лабораторный работах, в качестве тестового фреймворка используется [GoogleTest](https://google.github.io/googletest/). Каждый тест представляет из себя функцию, в рамках которой проверяются некоторые условия за счет [assert'ов](https://google.github.io/googletest/reference/assertions.html).  Предложенные Вам тесты используют только два различных assert'a:
-
-    - ASSERT_TRUE  - проверяет, что выражение является истинным (в противном случае тест неуспешен)
-    - ASSERT_EQ    - проверяет, что аргументы эквивалентны
-
-Например, тест
+## 🚀 Usage example
 
 ```cpp
-TEST(ArgParserTestSuite, StringTest) {
-    ArgParser parser("My Parser");
+#include <lib/ArgParser.h>
+
+using namespace ArgumentParser;
+
+int main(int argc, char** argv) {
+    ArgParser parser("Some CLI Program");
     parser.AddStringArgument("param1");
 
-    ASSERT_TRUE(parser.Parse(SplitString("app --param1=value1")));
-    ASSERT_EQ(parser.GetStringValue("param1"), "value1");
+    if (parser.Parse(argc, argv)) {
+        std::string param1_value = parser.GetStringValue("param1");
+        // Use param1_value as needed
+    }
+
+    return 0;
 }
 ```
 
-Проверяет, что
+## 🛠️ Adding custom arguments
 
- - Вызов `parser.Parse(SplitString("app --param1=value1"))` вернет `true`
- - Вызов `parser.GetStringValue("param1")` вернет `"value1"`
+In addition to built-in types like strings and integers, the argument parser supports custom types. You can define a custom argument type by providing a parsing function for your type.
 
-## Реализация
+Suppose you have a custom type `CustomType`:
 
-Реализация должна находится в библиотеке [argparser](lib/CMakeLists.txt). Изначально в библиотеке есть один класс, при необходимости добавляйте новые файлы, классы, функции и т.д. в библиотеку.
+```cpp
+using namespace ArgumentParser;
 
-### Примеры запуска
+struct CustomType {
+    int value1;
+    float value2;
+};
 
-Пример программы с использованием парсера находится в [bin](bin/main.cpp). Программа умеет складывать или умножать переданные ей аргументы.
+std::optional<CustomType> ParseCustomType(std::string_view view) {
+    // Implementation details...
+    // Parse values from view and construct CustomType object
+}
 
-*labwork4 --sum 1 2 3 4 5*
+using CustomArgument = GenericArgument<MyType, ParseCustomType>;
 
-*labwork4 --mult 1 2 3 4 5*
+int main() {
+    ArgParser parser("Some CLI Program");
 
-## NB
+    parser.AddArgument<CustomArgument>('c', "custom", "This is a custom argument!");
 
-1. Выполнение работы подразумевает только базовые знания о классах. Не запрещается использовать шаблоны, виртуальные функции и т.д. Однако для этого надо хорошо понимать как они работают и быть готовыми к вопросам.
+    if (parser.Parse({"myapp", "--custom", "argument_value"})) {
+        CustomType val = parser.GetValue<CustomType>().value();
+        std::cout << val.value1 << ' ' << val.value2 << std::endl;
+    }
 
-2. Данная лабораторная работа может быть переиспользована в следующих, в качестве библиотеки для работы с аргументами командной строки.
+    return 0;
+}
+```
 
-## Deadline
-
-1. 21.11.23 24:00 - 0.8
-2. 28.11.23 24:00 - 0.65
-3. 05.12.23 24:00 - 0.5
+If your argument has a custom logic that spans beyond parsing, you can manually derive from either `Argument` interface, or from `GenericArgument<T, P>`.
